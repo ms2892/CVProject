@@ -15,11 +15,13 @@ from transformers import ViTModel
 from torchvision.transforms.functional import InterpolationMode
 from dataloader import TinyImageNetLoader
 
-class ViTSimilarModel(nn.Module):
+class ViTSimilarModel_v2(nn.Module):
     
     def __init__(self):
-        super(ViTSimilarModel,self).__init__()
+        super(ViTSimilarModel_v2,self).__init__()
         self.vit = ViTModel.from_pretrained('google/vit-large-patch32-384')
+        for params in self.vit.parameters():
+            params.requires_grad=False
         self.linear = nn.Linear(296960,1024)
         self.linear2 = nn.Linear(1024,1)
         self.relu = nn.ReLU()
@@ -49,6 +51,7 @@ class ViTSimilarModel(nn.Module):
         out3 = self.linear2(out3)
         
         out3 = torch.sigmoid(out3)
+        
         return out3
 
 if __name__=='__main__':
@@ -62,7 +65,7 @@ if __name__=='__main__':
     img1 = inputs[0]
     img2 = inputs[1]
     print(img1.shape)
-    model = ViTSimilarModel()
+    model = ViTSimilarModel_v2()
     print(model(inputs))
     print(labels)
     

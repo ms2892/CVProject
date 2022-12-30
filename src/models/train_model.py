@@ -17,6 +17,7 @@ import sys
 import math
 from tqdm import tqdm
 from model import ViTSimilarModel
+from model_v2 import ViTSimilarModel_v2
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class TrainModelWrapper:
     def trainModel(self):
         total_train_iters = len(self.train_loader)
         total_val_iters = len(self.val_loader)
+        self.model = self.model.to(self.device)
         best_model_acc=0.0
         best_model = self.model
         since = time.time()
@@ -134,7 +136,7 @@ class TrainModelWrapper:
         
         
 if __name__=='__main__':
-    model = ViTSimilarModel()
+    model = ViTSimilarModel_v2()
     
     criterion = nn.BCELoss()
     
