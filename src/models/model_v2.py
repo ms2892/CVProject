@@ -41,7 +41,7 @@ class ViTSimilarModel_v2(nn.Module):
         out2 = self.vit(img2)
         out2 = out2.last_hidden_state
         out2 = torch.flatten(out2,start_dim=1)
-        print(out1.shape,out2.shape)
+        # print(out1.shape,out2.shape)
         
         
         
