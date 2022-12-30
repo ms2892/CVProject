@@ -17,11 +17,11 @@ class TinyImageNetLoader(Dataset):
         with open('../../data/processed/pairs.txt','rb') as handle:
             self.pairs = pickle.loads(handle.read())
         self.x = [i for i in self.pairs['sim']]
-        self.y = [1.0]*50000
+        self.y = [[1.0]]*50000
         
         self.x += [i for i in self.pairs['oth']]
-        self.y += [0.0]*50000
-        self.y = torch.tensor(self.y)
+        self.y += [[0.0]]*50000
+        self.y = torch.from_numpy(np.array(self.y))
 
         self.transform = transform
         

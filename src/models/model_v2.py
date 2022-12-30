@@ -20,6 +20,9 @@ class ViTSimilarModel(nn.Module):
     def __init__(self):
         super(ViTSimilarModel,self).__init__()
         self.vit = ViTModel.from_pretrained('google/vit-large-patch32-384')
+        self.linear = nn.Linear(296960,1024)
+        self.linear2 = nn.Linear(1024,1)
+        self.relu = nn.ReLU()
         
         
     def forward(self,x):
@@ -36,16 +39,16 @@ class ViTSimilarModel(nn.Module):
         out2 = self.vit(img2)
         out2 = out2.last_hidden_state
         out2 = torch.flatten(out2,start_dim=1)
+        print(out1.shape,out2.shape)
         
-        cosine_sim = nn.CosineSimilarity(dim=1)
-        out3 = cosine_sim(out1,out2)
-        out3 = torch.reshape(out3,(-1,1))
-        # print(out3.shape)
-        # x=input()
-        out3.add_(1)
-        out3.div_(2)
-        # print(out3.shape)
-        # t=input()
+        
+        
+        out3 = torch.cat([out1,out2],dim=1)
+        out3 = self.linear(out3)
+        out3 = self.relu(out3)
+        out3 = self.linear2(out3)
+        
+        out3 = torch.sigmoid(out3)
         return out3
 
 if __name__=='__main__':
