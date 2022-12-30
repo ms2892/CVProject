@@ -17,15 +17,17 @@ class TinyImageNetLoader(Dataset):
         with open('../../data/processed/pairs.txt','rb') as handle:
             self.pairs = pickle.loads(handle.read())
         self.x = [i for i in self.pairs['sim']]
-        self.y = ['sim']*50000
+        self.y = [1.0]*50000
         
         self.x += [i for i in self.pairs['oth']]
-        self.y += ['oth']*50000
+        self.y += [0.0]*50000
+        self.y = torch.tensor(self.y)
+
         self.transform = transform
         
     def __getitem__(self, index):
         img1, img2 = self.get_images(self.x[index])
-        return (img1,img2), self.y[index]
+        return torch.stack([img1,img2]), self.y[index]
         
     def get_images(self,ele):
         pth1 = ele[0]
@@ -62,17 +64,18 @@ class TinyImageNetValLoader(Dataset):
         with open('../../data/processed/val.txt','rb') as handle:
             self.pairs = pickle.loads(handle.read())
         self.x = [i for i in self.pairs['sim']]
-        self.y = ['sim']*10000
+        self.y = [1.0]*10000
         
         self.x += [i for i in self.pairs['oth']]
-        self.y += ['oth']*10000
+        self.y += [0.0]*10000
+        self.y = torch.tensor(self.y)
         # print(self.x.shape)
         
         self.transform = transform
         
     def __getitem__(self, index):
         img1, img2 = self.get_images(self.x[index])
-        return (img1,img2), self.y[index]
+        return torch.stack([img1,img2]), self.y[index]
         
     def get_images(self,ele):
         pth1 = ele[0]

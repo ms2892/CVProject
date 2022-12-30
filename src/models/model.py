@@ -20,17 +20,15 @@ class ViTSimilarModel(nn.Module):
     def __init__(self):
         super(ViTSimilarModel,self).__init__()
         self.vit = ViTModel.from_pretrained('google/vit-large-patch32-384')
-        for params in self.vit.parameters():
-            params.requires_grad=False
         
         
     def forward(self,x):
         
         # Fix the Forward Pass
-        
-        img1 = x[0]
-        img2 = x[1]
-        
+        # print(x.shape)
+        img1 = x[:,0,:,:,:]
+        img2 = x[:,1,:,:,:]
+        # print(img1.shape)
         out1 = self.vit(img1)
         out1 = out1.last_hidden_state
         out1 = torch.flatten(out1,start_dim=1)
@@ -43,20 +41,22 @@ class ViTSimilarModel(nn.Module):
         out3 = cosine_sim(out1,out2)
         out3.add_(1)
         out3.div_(2)
-        print(out3.shape)
-        t=input()
+        # print(out3.shape)
+        # t=input()
         return out3
 
-dataset = TinyImageNetLoader(transforms.Compose([transforms.Resize((384,384),interpolation=InterpolationMode.BICUBIC)]))
-dataloader = DataLoader(dataset,batch_size=4,shuffle=True)
-data_iter = iter(dataloader)
+if __name__=='__main__':
+    dataset = TinyImageNetLoader(transforms.Compose([transforms.Resize((384,384),interpolation=InterpolationMode.BICUBIC)]))
+    dataloader = DataLoader(dataset,batch_size=4,shuffle=True)
+    data_iter = iter(dataloader)
 
 
 
-inputs, labels = next(data_iter)
-img1 = inputs[0]
-img2 = inputs[1]
-print(img1.shape)
-model = ViTSimilarModel()
-print(model(inputs))
-print(labels)
+    inputs, labels = next(data_iter)
+    img1 = inputs[0]
+    img2 = inputs[1]
+    print(img1.shape)
+    model = ViTSimilarModel()
+    print(model(inputs))
+    print(labels)
+    
