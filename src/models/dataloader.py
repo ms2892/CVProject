@@ -21,7 +21,7 @@ class TinyImageNetLoader(Dataset):
         
         self.x += [i for i in self.pairs['oth']]
         self.y += [[0.0]]*50000
-        self.y = torch.from_numpy(np.array(self.y))
+        self.y = torch.from_numpy(np.array(self.y).astype(np.float32))
 
         self.transform = transform
         

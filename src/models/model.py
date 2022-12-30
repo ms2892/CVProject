@@ -10,7 +10,7 @@ import time
 import os 
 from torch.utils.data import DataLoader
 import copy
-from torchsummary import summary
+# from torchsummary import summary
 from transformers import ViTModel
 from torchvision.transforms.functional import InterpolationMode
 from dataloader import TinyImageNetLoader

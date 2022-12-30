@@ -71,6 +71,7 @@ class TrainModelWrapper:
     def trainModel(self):
         total_train_iters = len(self.train_loader)
         total_val_iters = len(self.val_loader)
+        self.model= self.model.to(self.device)
         best_model_acc=0.0
         best_model = self.model
         since = time.time()
@@ -138,5 +139,5 @@ if __name__=='__main__':
     
     criterion = nn.BCELoss()
     
-    trainer = TrainModelWrapper(model,criterion)
+    trainer = TrainModelWrapper(model,criterion,batch_size=8,num_epochs=10)
     best_model = trainer.trainModel()
