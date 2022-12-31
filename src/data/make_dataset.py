@@ -21,7 +21,7 @@ def main():
     logger.info('Creating the Training Dataset')
     
     
-    if not exists('../../data/processed/pairs.txt'):
+    if not exists('../../data/processed/pairs_v2.txt'):
     
         train_files = glob('../../data/raw/tiny-imagenet-200/train/*/images/*')
         class_labels = glob('../../data/raw/tiny-imagenet-200/train/*')
@@ -40,32 +40,42 @@ def main():
         flag_oth=True
         cnt_sim=0
         cnt_oth=0
-        
-        with tqdm(total=100000) as pbar:
-            while(flag_sim or flag_oth):
+        sim_size=5000
+        class_size = sim_size/200
+        with tqdm(total=2*sim_size) as pbar:
+            generated=set()
+            for class_ in classes.keys():
+                cnt=0
+                while(cnt<class_size):
+                    ele = random.choices(classes[class_],k=2)
+                    if ele[0]==ele[1]:
+                        continue
+                    else:
+                        if (ele[0],ele[1]) not in generated:
+                            generated.add((ele[0],ele[1]))
+                            labels['sim'].append(ele)
+                            cnt_sim+=1
+                            cnt+=1
+                            pbar.update(1)
+            
+            while(flag_oth):
                 ele = random.choices(train_files,k=2)
-                split1 = ele[0].split('/')
-                class1 = split1[6]
-                split2 = ele[1].split('/')
-                class2 = split2[6]
-                
-                if class1==class2 and flag_sim:
-                    labels['sim'].append(ele)
-                    pbar.update(1)
-                    cnt_sim+=1
-                    if cnt_sim==50000:
-                        flag_sim=False
-                elif class1!=class2 and flag_oth:
-                    labels['oth'].append(ele)
-                    cnt_oth+=1
-                    pbar.update(1)
-                    if cnt_oth==50000:
-                        flag_oth=False
+                cls1= ele[0].split('/')[6]
+                cls2= ele[1].split('/')[6]
+                if cls1!=cls2:
+                    if (ele[0],ele[1]) not in generated:
+                        generated.add((ele[0],ele[1]))
+                        cnt_oth+=1
+                        pbar.update(1)
+                        labels['oth'].append(ele)
+                        if cnt_oth==sim_size:
+                            break
+
             # print(ele)/
             # t=input()
         print(len(labels['sim']),len(labels['oth']))
         print(labels['sim'][0])
-        with open('../../data/processed/pairs.txt','wb') as handle:
+        with open('../../data/processed/pairs_v2.txt','wb') as handle:
             pickle.dump(labels,handle)
         
         
@@ -78,7 +88,7 @@ def main():
     logger.info('Creating Validation Dataset')
     generated=set()
     
-    if not exists('../../data/processed/val.txt'):
+    if not exists('../../data/processed/val_v2.txt'):
         
         val_files = glob('../../data/raw/tiny-imagenet-200/val/images/*')
         for i in range(len(val_files)):
@@ -99,7 +109,7 @@ def main():
             # print(i)
             class_fname[i[1]].append('../../data/raw/tiny-imagenet-200/val/images/'+i[0])
 
-        with tqdm(total=20000) as pbar:
+        with tqdm(total=0.4*sim_size) as pbar:
             while(flag_oth):
                 ele = random.choices(val_files,k=2)
                 split1 = ele[0].split('/')
@@ -122,7 +132,7 @@ def main():
                         labels['oth'].append(ele)
                         cnt_oth+=1
                         pbar.update(1)
-                        if cnt_oth==10000:
+                        if cnt_oth==0.2*sim_size:
                             flag_oth=False
             classes = val_annotations[['FileName','Class']]
             classes = classes.Class.unique()
@@ -144,7 +154,7 @@ def main():
                         labels['sim'].append(ele)
                         cnt_sim+=1
                         pbar.update(1)
-                        if cnt_sim==10000:
+                        if cnt_sim==0.2*sim_size:
                             flag_sim=False
 
 
@@ -152,7 +162,7 @@ def main():
             # t=input()
         print(len(labels['sim']),len(labels['oth']))
         print(labels['sim'][0])
-        with open('../../data/processed/val.txt','wb') as handle:
+        with open('../../data/processed/val_v2.txt','wb') as handle:
             pickle.dump(labels,handle)
     else:
         logger.info('Validation pairs already exists. Skipping this step')

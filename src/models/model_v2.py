@@ -13,7 +13,7 @@ import copy
 # from torchsummary import summary
 from transformers import ViTModel
 from torchvision.transforms.functional import InterpolationMode
-from dataloader import TinyImageNetLoader
+from dataloader import TinyImageNetLoader, TinyImageNetValLoader
 
 class ViTSimilarModel_v2(nn.Module):
     
@@ -55,7 +55,7 @@ class ViTSimilarModel_v2(nn.Module):
         return out3
 
 if __name__=='__main__':
-    dataset = TinyImageNetLoader(transforms.Compose([transforms.Resize((384,384),interpolation=InterpolationMode.BICUBIC)]))
+    dataset = TinyImageNetValLoader(transforms.Compose([transforms.Resize((384,384),interpolation=InterpolationMode.BICUBIC)]))
     dataloader = DataLoader(dataset,batch_size=4,shuffle=True)
     data_iter = iter(dataloader)
 
