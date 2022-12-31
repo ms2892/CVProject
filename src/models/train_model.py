@@ -18,6 +18,8 @@ import math
 from tqdm import tqdm
 from model import ViTSimilarModel
 from model_v2 import ViTSimilarModel_v2
+from siamese import Siamese
+from contrastive import ContrastiveLoss
 
 logger = logging.getLogger(__name__)
 
@@ -66,34 +68,33 @@ class TrainModelWrapper:
             self.device = kwargs['device']
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.train_loader = DataLoader(self.train_dataset,batch_size=self.batch_size,shuffle=True)
-        self.val_loader = DataLoader(self.val_dataset,batch_size=self.batch_size,shuffle=True)
+        self.train_loader = DataLoader(self.train_dataset,batch_size=self.batch_size,shuffle=True,num_workers=5)
+        self.val_loader = DataLoader(self.val_dataset,batch_size=self.batch_size,shuffle=True,num_workers=6)
         
     def trainModel(self):
         total_train_iters = len(self.train_loader)
         total_val_iters = len(self.val_loader)
         self.model = self.model.to(self.device)
         # self.model= self.model.to(self.device)
-        best_model_acc=0.0
-        best_model = self.model
         since = time.time()
         for epoch in range(self.num_epochs):
             print(f'Epoch {epoch+1}/{self.num_epochs}:')
             running_loss=0
-            running_correct=0
             self.model.train()
             with tqdm(total=total_train_iters) as pbar:
-                for inputs,labels in self.train_loader:
-                    inputs = inputs.to(self.device)
+                for img1,img2,labels in self.train_loader:
+                    
+                    img1 = img1.to(self.device)
+                    img2 = img2.to(self.device)
                     labels = labels.to(self.device)
                     
-                    output = self.model(inputs)
+                    output1,output2 = self.model(img1,img2)
                     
-                    loss = self.criterion(output,labels)
-                    running_loss+=loss.item()*inputs.size(0)
-                    y_pred = output.round()
+                    loss = self.criterion(output1,output2,labels)
+                    running_loss+=loss.item()
                     
-                    running_correct += y_pred.eq(labels).sum()
+                    
+                    
                     
                     loss.backward()
                     self.optimizer.step()
@@ -101,45 +102,40 @@ class TrainModelWrapper:
                     pbar.update(1)
             self.scheduler.step()
             epoch_loss = running_loss / len(self.train_dataset)
-            epoch_acc = running_correct.double()/ len(self.train_dataset) 
             print(f'Training Loss: {epoch_loss}')
-            print(f'Training Accuracy: {epoch_acc}') 
+
             
             self.model.eval()
             running_loss=0
-            running_correct=0
-            for inputs, labels in self.val_loader:
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device)
-                
-                output = self.model(inputs)
-                print(output.shape)
-                loss = self.criterion(output,labels)
-                
-                y_pred = output.round()
-                
-                running_loss+= loss.item()
-                running_correct+=y_pred.eq(labels).sum() 
+            with tqdm(total=total_val_iters) as pbar:
+                for img1,img2, labels in self.val_loader:
+                    img1 = img1.to(self.device)
+                    img2 = img2.to(self.device)
+                    labels = labels.to(self.device)
+                    
+                    output1,output2 = self.model(img1,img2)
+
+                    loss = self.criterion(output1,output2,labels)
+                    
+
+                    
+                    running_loss+= loss.item()
+                    pbar.update(1)
+
             val_loss = running_loss/len(self.val_dataset)
-            val_acc = running_correct.double()/len(self.val_dataset)
+
             print(f'Validation Loss: {val_loss}')
-            print(f'Validation Accuracy: {val_acc}') 
-            if best_model_acc<val_acc:
-                best_model = copy.deepcopy(self.model.state_dict())
-                best_model_acc=val_acc
+
         time_elapsed = time.time()-since
         print('---------------------------------------------------------------------')
         print(f'Training Completed in {time_elapsed//60:.0f}m {time_elapsed%60:.0f}s')
-        print(f'Best Validation Accuracy: {best_model_acc}')
-        
-        self.model.load_state_dict(best_model) 
         return self.model           
         
         
 if __name__=='__main__':
     model = ViTSimilarModel_v2()
     
-    criterion = nn.BCELoss()
+    criterion = ContrastiveLoss()
     
     trainer = TrainModelWrapper(model,criterion,batch_size=8,num_epochs=10)
     best_model = trainer.trainModel()

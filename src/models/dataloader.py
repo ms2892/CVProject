@@ -27,7 +27,8 @@ class TinyImageNetLoader(Dataset):
         
     def __getitem__(self, index):
         img1, img2 = self.get_images(self.x[index])
-        return torch.stack([img1,img2]), self.y[index]
+        # print(img1,img2)
+        return img1,img2, self.y[index]
         
     def get_images(self,ele):
         pth1 = ele[0]
@@ -50,7 +51,8 @@ class TinyImageNetLoader(Dataset):
         
         img1 = self.transform(img1)
         img2 = self.transform(img2)
-        
+        img1 = img1 / 255.0
+        img2 = img2 /255.0
         return img1,img2
 
     def __len__(self):
@@ -75,7 +77,7 @@ class TinyImageNetValLoader(Dataset):
         
     def __getitem__(self, index):
         img1, img2 = self.get_images(self.x[index])
-        return torch.stack([img1,img2]), self.y[index]
+        return img1,img2, self.y[index]
         
     def get_images(self,ele):
         pth1 = ele[0]
@@ -98,7 +100,8 @@ class TinyImageNetValLoader(Dataset):
         
         img1 = self.transform(img1)
         img2 = self.transform(img2)
-        
+        img1 = img1 / 255.0
+        img2 = img2 / 255.0
         return img1,img2
     
     def __len__(self):
