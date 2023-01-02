@@ -20,6 +20,26 @@ from model import ViTSimilarModel
 from model_v2 import ViTSimilarModel_v2
 from siamese import Siamese
 from contrastive import ContrastiveLoss
+from torch.cuda import amp
+from collections import defaultdict
+
+class CFG:
+    seed = 42
+    model_name = 'tf_efficientnet_b4_ns'
+    img_size = 512
+    scheduler = 'CosineAnnealingLR'
+    T_max = 10
+    lr = 1e-5
+    min_lr = 1e-6
+    batch_size = 16
+    weight_decay = 1e-6
+    num_epochs = 10
+    num_classes = 11014
+    embedding_size = 512
+    n_fold = 5
+    n_accumulate = 4
+    temperature = 0.1
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 logger = logging.getLogger(__name__)
 
@@ -72,65 +92,81 @@ class TrainModelWrapper:
         self.val_loader = DataLoader(self.val_dataset,batch_size=self.batch_size,shuffle=True,num_workers=6)
         
     def trainModel(self):
-        total_train_iters = len(self.train_loader)
-        total_val_iters = len(self.val_loader)
-        self.model = self.model.to(self.device)
-        # self.model= self.model.to(self.device)
-        since = time.time()
-        for epoch in range(self.num_epochs):
-            print(f'Epoch {epoch+1}/{self.num_epochs}:')
-            running_loss=0
-            self.model.train()
-            with tqdm(total=total_train_iters) as pbar:
-                for img1,img2,labels in self.train_loader:
-                    
-                    img1 = img1.to(self.device)
-                    img2 = img2.to(self.device)
-                    labels = labels.to(self.device)
-                    
-                    output1,output2 = self.model(img1,img2)
-                    
-                    loss = self.criterion(output1,output2,labels)
-                    running_loss+=loss.item()
-                    
-                    
-                    
-                    
-                    loss.backward()
-                    self.optimizer.step()
-                    self.optimizer.zero_grad()
-                    pbar.update(1)
-            self.scheduler.step()
-            epoch_loss = running_loss / len(self.train_dataset)
-            print(f'Training Loss: {epoch_loss}')
+        start = time.time()
+        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_loss = np.inf
+        history = defaultdict(list)
+        scaler = amp.GradScaler()
+        dataloaders = {'train':self.train_loader,'val':self.val_loader}
+        dataset_sizes = {'train':len(self.train_dataset),'val':len(self.val_dataset)}
 
+        for step, epoch in enumerate(range(1,self.num_epochs+1)):
+            print('Epoch {}/{}'.format(epoch, self.num_epochs))
+            print('-' * 10)
+
+            # Each epoch has a training and validation phase
+            for phase in ['train','valid']:
+                if(phase == 'train'):
+                    model.train() # Set model to training mode
+                else:
+                    model.eval() # Set model to evaluation mode
+                
+                running_loss = 0.0
+                
+                # Iterate over data
+                for inputs,labels in tqdm(dataloaders[phase]):
+                    inputs = inputs.to(CFG.device)
+                    labels = labels.to(CFG.device)
+
+                    # forward
+                    # track history if only in train
+                    with torch.set_grad_enabled(phase == 'train'):
+                        with amp.autocast(enabled=True):
+                            outputs = self.model(inputs)
+                            loss = self.criterion(outputs, labels)
+                            loss = loss / CFG.n_accumulate
+                        
+                        # backward only if in training phase
+                        if phase == 'train':
+                            scaler.scale(loss).backward()
+
+                        # optimize only if in training phase
+                        if phase == 'train' and (step + 1) % CFG.n_accumulate == 0:
+                            scaler.step(self.optimizer)
+                            scaler.update()
+                            self.scheduler.step()
+                            
+                            # zero the parameter gradients
+                            self.optimizer.zero_grad()
+
+
+                    running_loss += loss.item()*inputs.size(0)
+                
+                epoch_loss = running_loss/dataset_sizes[phase]            
+                history[phase + ' loss'].append(epoch_loss)
+
+                print('{} Loss: {:.4f}'.format(
+                    phase, epoch_loss))
+                
+                # # deep copy the model
+                # if phase=='valid' and epoch_loss <= best_loss:
+                #     best_loss = epoch_loss
+                #     best_model_wts = copy.deepcopy(model.state_dict())
+                #     # PATH = f"Fold{fold}_{best_loss}_epoch_{epoch}.bin"
+                #     torch.save(model.state_dict(), 'best_model.bin')
+
+            print()
+
+        end = time.time()
+        time_elapsed = end - start
+        print('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(
+            time_elapsed // 3600, (time_elapsed % 3600) // 60, (time_elapsed % 3600) % 60))
+        print("Best Loss ",best_loss)
+
+        # load best model weights
+        # model.load_state_dict(best_model_wts)
+        return self.model, history           
             
-            self.model.eval()
-            running_loss=0
-            with tqdm(total=total_val_iters) as pbar:
-                for img1,img2, labels in self.val_loader:
-                    img1 = img1.to(self.device)
-                    img2 = img2.to(self.device)
-                    labels = labels.to(self.device)
-                    
-                    output1,output2 = self.model(img1,img2)
-
-                    loss = self.criterion(output1,output2,labels)
-                    
-
-                    
-                    running_loss+= loss.item()
-                    pbar.update(1)
-
-            val_loss = running_loss/len(self.val_dataset)
-
-            print(f'Validation Loss: {val_loss}')
-
-        time_elapsed = time.time()-since
-        print('---------------------------------------------------------------------')
-        print(f'Training Completed in {time_elapsed//60:.0f}m {time_elapsed%60:.0f}s')
-        return self.model           
-        
         
 if __name__=='__main__':
     model = ViTSimilarModel_v2()
