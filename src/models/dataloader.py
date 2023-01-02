@@ -17,10 +17,10 @@ class TinyImageNetLoader(Dataset):
         with open('../../data/processed/pairs_v2.txt','rb') as handle:
             self.pairs = pickle.loads(handle.read())
         self.x = [i for i in self.pairs['sim']]
-        self.y = [[1.0]]*len(self.x)
+        self.y = [[0.0]]*len(self.x)
         
         self.x += [i for i in self.pairs['oth']]
-        self.y += [[0.0]]*len(self.y)
+        self.y += [[1.0]]*len(self.y)
         self.y = torch.from_numpy(np.array(self.y).astype(np.float32))
 
         self.transform = transform
@@ -66,10 +66,10 @@ class TinyImageNetValLoader(Dataset):
         with open('../../data/processed/val_v2.txt','rb') as handle:
             self.pairs = pickle.loads(handle.read())
         self.x = [i for i in self.pairs['sim']]
-        self.y = [[1.0]]*len(self.x)
+        self.y = [[0.0]]*len(self.x)
         
         self.x += [i for i in self.pairs['oth']]
-        self.y += [[0.0]]*len(self.y)
+        self.y += [[1.0]]*len(self.y)
         self.y =  torch.from_numpy(np.array(self.y).astype(np.float32))
         # print(self.x.shape)
         
