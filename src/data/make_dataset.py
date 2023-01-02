@@ -21,7 +21,7 @@ def main():
     logger.info('Creating the Training Dataset')
     
     
-    if not exists('../../data/processed/pairs_v2.txt'):
+    if not exists('../../data/processed/pairs_v3.txt'):
     
         train_files = glob('../../data/raw/tiny-imagenet-200/train/*/images/*')
         class_labels = glob('../../data/raw/tiny-imagenet-200/train/*')
@@ -41,7 +41,8 @@ def main():
         cnt_sim=0
         cnt_oth=0
         sim_size=5000
-        class_size = sim_size/200
+        class_size = sim_size/50
+        train_classes = set([i for i in classes.keys()])
         with tqdm(total=2*sim_size) as pbar:
             generated=set()
             for class_ in classes.keys():
@@ -75,12 +76,12 @@ def main():
             # t=input()
         print(len(labels['sim']),len(labels['oth']))
         print(labels['sim'][0])
-        with open('../../data/processed/pairs_v2.txt','wb') as handle:
+        with open('../../data/processed/pairs_v3.txt','wb') as handle:
             pickle.dump(labels,handle)
         
         
         
-        logger.info('Training Pair Successfully Created and stored at ' + '../../data/processed/pairs.txt')
+        logger.info('Training Pair Successfully Created and stored at ' + '../../data/processed/pairs_v3.txt')
     else:
         logger.info('Training Pair txt file already exists')
         
@@ -88,7 +89,7 @@ def main():
     logger.info('Creating Validation Dataset')
     generated=set()
     
-    if not exists('../../data/processed/val_v2.txt'):
+    if not exists('../../data/processed/val_v3.txt'):
         
         val_files = glob('../../data/raw/tiny-imagenet-200/val/images/*')
         for i in range(len(val_files)):
@@ -126,7 +127,7 @@ def main():
                 class2 = class2.iloc[:,1].values
                 class2 = class2[0]
 
-                if class1!=class2 and flag_oth:
+                if class1!=class2 and flag_oth and class1 in train_classes and class2 in train_classes:
                     if (fname1,fname2) not in generated:
                         generated.add((fname1,fname2))
                         labels['oth'].append(ele)
@@ -148,7 +149,7 @@ def main():
                 fname1=split1[7]
                 fname2=split2[7]
                 
-                if fname1!=fname2:
+                if fname1!=fname2 and rndm_class in train_classes:
                     if (fname1,fname2) not in generated:
                         generated.add((fname1,fname2))
                         labels['sim'].append(ele)
@@ -162,7 +163,7 @@ def main():
             # t=input()
         print(len(labels['sim']),len(labels['oth']))
         print(labels['sim'][0])
-        with open('../../data/processed/val_v2.txt','wb') as handle:
+        with open('../../data/processed/val_v3.txt','wb') as handle:
             pickle.dump(labels,handle)
     else:
         logger.info('Validation pairs already exists. Skipping this step')
