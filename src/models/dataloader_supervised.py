@@ -34,6 +34,11 @@ class SimilarityDataset(Dataset):
         pth2 = paths[1]
         img1 = cv2.imread(pth1)
         img2 = cv2.imread(pth2)
+
+        img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2RGB)
+        img2 = cv2.cvtColor(img2,cv2.COLOR_BGR2RGB)
+
+
         img1 = img1.astype(np.uint8)
         img2 = img2.astype(np.uint8)
 
