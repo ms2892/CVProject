@@ -27,7 +27,7 @@ class SimilarityModel(nn.Module):
         model.classifier = nn.Linear(in_features, CFG.embedding_size)
 
         out = model(torch.randn(1, 3, CFG.img_size, CFG.img_size))
-        model.load_state_dict(torch.load('model_weights.pth'))
+        model.load_state_dict(torch.load('model_weights.pth',map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
         self.model = model
         for params in self.model.parameters():
             params.requires_grad=False

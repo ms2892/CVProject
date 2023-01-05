@@ -90,9 +90,9 @@ class SimilarityValDataset(Dataset):
 
 if __name__=='__main__':
     compose = transforms.Compose([transforms.ToTensor(),transforms.Resize((224,224),interpolation=InterpolationMode.BICUBIC)])
-    train_dataset = SimilarityDataset(compose)
+    # train_dataset = SimilarityDataset(compose)
     # print(train_dataset[6000])
 
 
     val_dataset = SimilarityValDataset(compose)
-    # print(val_dataset[100])
+    print(val_dataset[100])
